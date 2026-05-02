@@ -72,6 +72,7 @@ approval, and contract status synchronization when a trip ends. No
 application code can bypass these rules.
 
 ## Project Structure
+```text
 ├── sql/
 │   ├── schema.sql           # 3NF Table definitions & constraints [cite: 255, 263]
 │   ├── advanced_objects.sql  # Triggers, Procedures, Views, & UDFs [cite: 15, 406]
@@ -82,6 +83,7 @@ application code can bypass these rules.
 ├── docs/
 │   └── report.pdf           # Final project documentation [cite: 6]
 └── README.md                # Project overview & setup instructions
+```
 ## Author
 
 Le Minh Thong — Student ID 11247227 — Class DS66B  
