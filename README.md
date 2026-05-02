@@ -74,14 +74,14 @@ application code can bypass these rules.
 ## Project Structure
 ```text
 ├── sql/
-│   ├── schema.sql           # 3NF Table definitions & constraints [cite: 255, 263]
-│   ├── advanced_objects.sql  # Triggers, Procedures, Views, & UDFs [cite: 15, 406]
+│   ├── schema.sql           # 3NF Table definitions & constraints
+│   ├── advanced_objects.sql  # Triggers, Procedures, Views, & UDFs
 │   └── sample_data.sql      # Seed data for system testing
 ├── app/
-│   ├── app.py               # DB connection & core query functions [cite: 409]
-│   └── web.py               # Streamlit web interface (UI layer) [cite: 410]
+│   ├── app.py               # DB connection & core query functions
+│   └── web.py               # Streamlit web interface (UI layer)
 ├── docs/
-│   └── report.pdf           # Final project documentation [cite: 6]
+│   └── report.pdf           # Final project documentation
 └── README.md                # Project overview & setup instructions
 ```
 ## Author
