@@ -72,11 +72,16 @@ approval, and contract status synchronization when a trip ends. No
 application code can bypass these rules.
 
 ## Project Structure
-sql/              Run in order: schema → advanced_objects → sample_data
-app/app.py        Database connection layer and all query functions
-app/web.py        Streamlit web dashboard (imports from app.py)
-docs/report.pdf   Full project report
-
+├── sql/
+│   ├── schema.sql           # 3NF Table definitions & constraints [cite: 255, 263]
+│   ├── advanced_objects.sql  # Triggers, Procedures, Views, & UDFs [cite: 15, 406]
+│   └── sample_data.sql      # Seed data for system testing
+├── app/
+│   ├── app.py               # DB connection & core query functions [cite: 409]
+│   └── web.py               # Streamlit web interface (UI layer) [cite: 410]
+├── docs/
+│   └── report.pdf           # Final project documentation [cite: 6]
+└── README.md                # Project overview & setup instructions
 ## Author
 
 Le Minh Thong — Student ID 11247227 — Class DS66B  
