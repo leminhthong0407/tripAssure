@@ -3,16 +3,36 @@ TripAssure Travel Insurance Management System
 Python Application — Backend & CLI
 
 Run: python app.py
-Requires: pip install mysql-connector-python tabulate
+Requires: pip install mysql-connector-python tabulate python-dotenv
+
+Credentials: copy .env.example → .env and fill in values.
+Never commit .env to version control.
 """
 
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Tìm .env tương đối với vị trí app.py — không phụ thuộc working directory
+load_dotenv(dotenv_path=Path(__file__).parent / ".env")
+
+def _require_env(key: str) -> str:
+    """Đọc biến môi trường bắt buộc. Fail fast nếu thiếu — tránh chạy với config sai."""
+    val = os.getenv(key)
+    if not val:
+        raise EnvironmentError(
+            f"Required environment variable '{key}' is not set. "
+            f"Copy .env.example to .env and fill in the values."
+        )
+    return val
+
 DB_CONFIG = {
-    "host":       "localhost",
-    "port":       3306,
-    "database":   "TravelInsuranceDB",
-    "user":       "tripAssure_admin",
-    "password":   "AdminPass@2025",
+    "host":     os.getenv("DB_HOST", "localhost"),
+    "port":     int(os.getenv("DB_PORT", "3306")),
+    "database": os.getenv("DB_NAME", "TravelInsuranceDB"),
     "autocommit": False,
+    # user/password intentionally omitted here —
+    # resolved at connection time via get_connection()
 }
 
 import mysql.connector
@@ -20,7 +40,30 @@ from contextlib import contextmanager
 from decimal import Decimal, InvalidOperation
 
 def get_connection():
-    return mysql.connector.connect(**DB_CONFIG)
+    """
+    Resolve DB credentials at connection time.
+
+    Priority:
+      1. Streamlit session state (web layer — role-specific DB user)
+      2. Environment variables DB_USER / DB_PASSWORD (CLI layer)
+
+    This separation ensures:
+      - Web: each role connects as its own DB user → RBAC enforced at DB level
+      - CLI: uses env var credentials (typically admin for demo/dev)
+    """
+    try:
+        import streamlit as st
+        user     = st.session_state.get("db_user")
+        password = st.session_state.get("db_pass")
+    except Exception:
+        user, password = None, None
+
+    # Fallback to environment variables if not in a Streamlit session
+    if not user:
+        user     = _require_env("DB_USER")
+        password = _require_env("DB_PASSWORD")
+
+    return mysql.connector.connect(**DB_CONFIG, user=user, password=password)
 
 
 def _clean_error(e):

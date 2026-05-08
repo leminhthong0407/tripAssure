@@ -45,11 +45,20 @@ html, body, [class*="css"] {
     background: #ffffff !important;
     color: #18181b !important;
 }
-#MainMenu, footer, header { visibility: hidden; }
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
+header { background-color: transparent !important; }
+
+/* ── Luôn hiện nút collapse/expand sidebar ── */
+[data-testid="collapsedControl"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
 
 /* ── Content area — reduce top gap ── */
 .main .block-container {
-    padding-top: 1.75rem !important;
+    padding-top: 0.5rem !important;
     padding-bottom: 3rem !important;
     padding-left: 2.5rem !important;
     padding-right: 2.5rem !important;
@@ -370,9 +379,17 @@ def apply_layout(fig, **kwargs):
 # ─────────────────────────────────────────────────────────────────────────────
 # SESSION STATE
 # ─────────────────────────────────────────────────────────────────────────────
-for k, v in [("role", None), ("page", None)]:
+for k, v in [("role", None), ("page", None), ("db_user", None)]:
     if k not in st.session_state:
         st.session_state[k] = v
+
+# Map UI role → DB credentials
+# Mỗi role dùng đúng DB user của mình — RBAC được enforce tại tầng DB
+ROLE_DB_CREDENTIALS = {
+    "agent":    {"user": "tripAssure_agent",    "password": "AgentPass@2025"},
+    "assessor": {"user": "tripAssure_assessor", "password": "AssessorPass@2025"},
+    "admin":    {"user": "tripAssure_admin",     "password": "AdminPass@2025"},
+}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -381,7 +398,6 @@ for k, v in [("role", None), ("page", None)]:
 def page_login():
     _, col, _ = st.columns([1, 1.4, 1])
     with col:
-        st.markdown("<br><br>", unsafe_allow_html=True)
         st.markdown("""
         <div style="text-align:center; margin-bottom:2rem;">
             <div style="font-size:2rem; margin-bottom:0.5rem;">🛡️</div>
@@ -405,11 +421,17 @@ def page_login():
                 <b style="color:#52525b">Assessor</b> — claim decisions &nbsp;·&nbsp;
                 <b style="color:#52525b">Admin</b> — reports & overview
             </div>""", unsafe_allow_html=True)
-            submitted = st.form_submit_button("Continue →", use_container_width=True)
+            submitted = st.form_submit_button("Continue →", width="stretch")
 
         if submitted:
-            st.session_state.role = role.lower()
-            st.session_state.page = None
+            role_key = role.lower()
+            creds    = ROLE_DB_CREDENTIALS[role_key]
+            # Ghi DB credentials vào session — app.get_connection() sẽ đọc từ đây
+            st.session_state.role    = role_key
+            st.session_state.db_user = creds["user"]
+            # Lưu password trong session state (in-memory, không persist sang disk)
+            st.session_state.db_pass = creds["password"]
+            st.session_state.page    = None
             st.rerun()
 
 
@@ -461,14 +483,14 @@ def render_sidebar():
         st.divider()
 
         for label, key in cfg["pages"]:
-            if st.button(label, key=f"nav_{key}", use_container_width=True):
+            if st.button(label, key=f"nav_{key}", width="stretch"):
                 st.session_state.page = key
                 st.rerun()
 
         st.divider()
 
         # Xóa tham số icon đi, chèn thẳng ký tự vào chuỗi text
-        if st.button("⎋ Log out", use_container_width=True):
+        if st.button("⎋ Log out", width="stretch"):
             st.session_state.role = None
             st.session_state.page = None
             st.rerun()
@@ -487,7 +509,7 @@ def page_active_contracts():
         df = to_df(data)
         if "TotalPremium" in df.columns:
             df["TotalPremium"] = df["TotalPremium"].apply(vnd)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, width="stretch", hide_index=True)
         st.caption(f"{len(data)} contract(s)")
     except Exception as e:
         st.error(_clean_error(e))
@@ -513,7 +535,7 @@ def page_enroll():
             email   = st.text_input("Email")
             address = st.text_area("Address", height=95)
 
-        submitted = st.form_submit_button("Create customer", use_container_width=True)
+        submitted = st.form_submit_button("Create customer", width="stretch")
 
     if submitted:
         if not (name.strip() and nid.strip() and phone.strip()):
@@ -548,7 +570,7 @@ def page_new_contract():
             if not results:
                 st.warning("No customers found.")
             else:
-                st.dataframe(to_df(results), use_container_width=True, hide_index=True)
+                st.dataframe(to_df(results), width="stretch", hide_index=True)
                 customer_id = st.selectbox(
                     "Select customer ID",
                     [r["CustomerID"] for r in results],
@@ -595,7 +617,7 @@ def page_new_contract():
         with c2:
             num_travelers = st.number_input("Travelers *", min_value=1, max_value=50, value=1)
 
-        submitted = st.form_submit_button("Calculate & create contract", use_container_width=True)
+        submitted = st.form_submit_button("Calculate & create contract", width="stretch")
 
     if submitted:
         if not customer_id:
@@ -666,7 +688,7 @@ def page_file_claim():
             "Incident description *", height=120,
             placeholder="What happened, when and where — include any reference numbers.",
         )
-        submitted = st.form_submit_button("Submit claim", use_container_width=True)
+        submitted = st.form_submit_button("Submit claim", width="stretch")
 
     if submitted:
         if not description.strip():
@@ -694,7 +716,7 @@ def page_pending_claims():
         df = to_df(data)
         if "MaxCoverageAmount" in df.columns:
             df["MaxCoverageAmount"] = df["MaxCoverageAmount"].apply(vnd)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, width="stretch", hide_index=True)
         st.caption(f"{len(data)} claim(s) pending")
     except Exception as e:
         st.error(_clean_error(e))
@@ -745,7 +767,7 @@ def page_process_assessment():
             placeholder="Summarize evidence reviewed and the reason for your decision.",
         )
         submitted = st.form_submit_button(
-            "Confirm decision — this cannot be undone", use_container_width=True
+            "Confirm decision — this cannot be undone", width="stretch"
         )
 
     if submitted:
@@ -765,7 +787,7 @@ def page_process_assessment():
                 if detail:
                     st.markdown("#### Claim record")
                     df_d = pd.DataFrame([{"Field": k, "Value": str(v)} for k, v in detail.items()])
-                    st.dataframe(df_d, use_container_width=True, hide_index=True)
+                    st.dataframe(df_d, width="stretch", hide_index=True)
             except Exception as e:
                 st.error(_clean_error(e))
 
@@ -826,7 +848,7 @@ def page_dashboard():
                 marker=dict(size=5, color=C_GRAY),
             ))
             apply_layout(fig, title=dict(text="Monthly payouts (VND)", font=dict(size=12, color="#52525b")))
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         else:
             st.info("No payout data yet.")
 
@@ -845,7 +867,7 @@ def page_dashboard():
             apply_layout(fig2, title=dict(text="Claims by type", font=dict(size=12, color="#52525b")),
                          showlegend=True,
                          legend=dict(font=dict(size=10), bgcolor="rgba(0,0,0,0)", orientation="v"))
-            st.plotly_chart(fig2, use_container_width=True)
+            st.plotly_chart(fig2, width="stretch")
         else:
             st.info("No claim data yet.")
 
@@ -864,7 +886,7 @@ def page_dashboard():
         apply_layout(fig3,
                      title=dict(text="Approved vs. rejected by type", font=dict(size=12, color="#52525b")),
                      barmode="stack")
-        st.plotly_chart(fig3, use_container_width=True)
+        st.plotly_chart(fig3, width="stretch")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -894,12 +916,12 @@ def page_monthly_payouts():
         ))
         apply_layout(fig,
                      title=dict(text="Monthly payout total + average (VND)", font=dict(size=12, color="#52525b")))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
         df_show = df.drop(columns=["Month"]).copy()
         df_show["TotalAmountVND"] = df_show["TotalAmountVND"].apply(vnd)
         df_show["AvgAmountVND"]   = df_show["AvgAmountVND"].apply(vnd)
-        st.dataframe(df_show, use_container_width=True, hide_index=True)
+        st.dataframe(df_show, width="stretch", hide_index=True)
     except Exception as e:
         st.error(_clean_error(e))
 
@@ -941,12 +963,12 @@ def page_contract_summary():
                          xaxis=dict(showgrid=False, linecolor="#e4e4e7", tickfont=dict(size=10), title="Premium (VND)"),
                          yaxis=dict(gridcolor="#f4f4f5", linecolor="rgba(0,0,0,0)", tickfont=dict(size=10), rangemode="tozero", title="Paid out (VND)"),
                          )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         df_show = df.copy()
         df_show["TotalPremium"]    = df_show["TotalPremium"].apply(vnd)
         df_show["TotalPaidOutVND"] = df_show["TotalPaidOutVND"].apply(vnd)
-        st.dataframe(df_show, use_container_width=True, hide_index=True)
+        st.dataframe(df_show, width="stretch", hide_index=True)
     except Exception as e:
         st.error(_clean_error(e))
 
@@ -982,7 +1004,7 @@ def page_claim_type_report():
                          yaxis=dict(gridcolor="#f4f4f5", linecolor="rgba(0,0,0,0)",
                                     tickfont=dict(size=10), range=[0, 115]),
                          showlegend=False)
-            st.plotly_chart(fig1, use_container_width=True)
+            st.plotly_chart(fig1, width="stretch")
 
         with c_r:
             fig2 = go.Figure(go.Bar(
@@ -992,11 +1014,11 @@ def page_claim_type_report():
             apply_layout(fig2,
                          title=dict(text="Total paid out by type (VND)", font=dict(size=12, color="#52525b")),
                          showlegend=False)
-            st.plotly_chart(fig2, use_container_width=True)
+            st.plotly_chart(fig2, width="stretch")
 
         df_show = df.copy()
         df_show["TotalPaidOutVND"] = df_show["TotalPaidOutVND"].apply(vnd)
-        st.dataframe(df_show, use_container_width=True, hide_index=True)
+        st.dataframe(df_show, width="stretch", hide_index=True)
     except Exception as e:
         st.error(_clean_error(e))
 
@@ -1015,7 +1037,7 @@ def page_expiries():
             st.success(f"No contracts expiring within {days} days.")
             return
         df = to_df(data)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, width="stretch", hide_index=True)
         st.caption(f"{len(data)} contract(s)")
 
         if "DaysUntilExpiry" in df.columns and "FullName" in df.columns:
@@ -1039,7 +1061,7 @@ def page_expiries():
                          yaxis=dict(gridcolor="rgba(0,0,0,0)", linecolor="rgba(0,0,0,0)",
                                     tickfont=dict(size=10)),
                          )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
     except Exception as e:
         st.error(_clean_error(e))
 
