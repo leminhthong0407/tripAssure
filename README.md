@@ -86,8 +86,8 @@ Edit `app/.env` and fill in your MySQL credentials.
 ```bash
 mysql -u root -p < sql/schema.sql
 mysql -u root -p < sql/advanced_objects.sql
+mysql -u root -p < sql/audit_log.sql
 mysql -u root -p < sql/sample_data.sql
-mysql -u root -p < sql/demo_audit.sql
 ```
 
 **5. Run**
@@ -126,26 +126,6 @@ validation before insert, automatic payout creation on assessment
 approval, and contract status synchronization when a trip ends. No
 application code can bypass these rules.
 
-<<<<<<< HEAD
-## Project Structure
-```text
-├── sql/
-│   ├── schema.sql            # 3NF Table definitions & constraints
-│   ├── advanced_objects.sql  # Triggers, Procedures, Views, & UDFs
-│   └── sample_data.sql       # Seed data for system testing
-├── app/
-│   ├── app.py                # DB connection & core query functions
-│   └── web.py                # Streamlit web interface (UI layer)
-├── docs/
-│   └── report.pdf            # Final project documentation
-└── README.md                 # Project overview & setup instructions
-```
-## Author
-
-Le Minh Thong — Student ID 11247227 — Class DS66B  
-Instructor: Dr. Tran Hung  
-National Economics University, College of Technology
-=======
 **RBAC enforced at the DB layer.** The web login maps each role to a
 dedicated MySQL user (`tripAssure_agent`, `tripAssure_assessor`,
 `tripAssure_admin`). Permissions are granted at the DB level — an agent
@@ -168,4 +148,3 @@ variables (CLI), in that order.
 Le Minh Thong — Student ID 11247227 — Class DS66B
 Instructor: Dr. Tran Hung
 National Economics University, College of Technology
->>>>>>> 6967e70 (Fix sidebar toggle visibility)
